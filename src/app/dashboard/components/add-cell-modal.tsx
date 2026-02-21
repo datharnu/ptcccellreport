@@ -1,20 +1,50 @@
 "use client";
 
+import { useState } from "react";
 import { X, Mail, Lock, User, MapPin, Home } from "lucide-react";
+import api from "@/lib/api";
+import { toast } from "react-hot-toast";
 
 interface AddCellModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onAdd: (data: any) => void;
+    onAdd: () => void; // Trigger a refresh in parent
 }
 
 export function AddCellModal({ isOpen, onClose, onAdd }: AddCellModalProps) {
+    const [fullName, setFullName] = useState("");
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [cellName, setCellName] = useState("");
+    const [loading, setLoading] = useState(false);
+
     if (!isOpen) return null;
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        // Logic to handle form submission
-        onClose();
+        setLoading(true);
+
+        try {
+            await api.post("/users/create-leader", {
+                fullName,
+                email,
+                password,
+                cellName
+            });
+
+            toast.success("Cell leader account created!");
+            onAdd();
+            onClose();
+            // Reset form
+            setFullName("");
+            setEmail("");
+            setPassword("");
+            setCellName("");
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || "Failed to create account");
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -45,36 +75,26 @@ export function AddCellModal({ isOpen, onClose, onAdd }: AddCellModalProps) {
                                 <input
                                     type="text"
                                     placeholder="e.g. Pearl LC"
+                                    value={cellName}
+                                    onChange={(e) => setCellName(e.target.value)}
                                     className="w-full bg-[#F8F9FB] border border-gray-100 rounded-xl pl-12 pr-4 py-3 text-sm focus:ring-2 focus:ring-[#155DFC]/20 focus:border-[#155DFC] focus:outline-none placeholder:text-gray-400 transition-all"
                                     required
                                 />
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-1">
-                                <label className="text-xs font-bold text-gray-700 ml-1">Leader's Name</label>
-                                <div className="relative">
-                                    <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                                    <input
-                                        type="text"
-                                        placeholder="Full Name"
-                                        className="w-full bg-[#F8F9FB] border border-gray-100 rounded-xl pl-12 pr-4 py-3 text-sm focus:ring-2 focus:ring-[#155DFC]/20 focus:border-[#155DFC] focus:outline-none placeholder:text-gray-400 transition-all"
-                                        required
-                                    />
-                                </div>
-                            </div>
-                            <div className="space-y-1">
-                                <label className="text-xs font-bold text-gray-700 ml-1">Location</label>
-                                <div className="relative">
-                                    <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                                    <input
-                                        type="text"
-                                        placeholder="Area/Street"
-                                        className="w-full bg-[#F8F9FB] border border-gray-100 rounded-xl pl-12 pr-4 py-3 text-sm focus:ring-2 focus:ring-[#155DFC]/20 focus:border-[#155DFC] focus:outline-none placeholder:text-gray-400 transition-all"
-                                        required
-                                    />
-                                </div>
+                        <div className="space-y-1">
+                            <label className="text-xs font-bold text-gray-700 ml-1">Leader's Name</label>
+                            <div className="relative">
+                                <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                                <input
+                                    type="text"
+                                    placeholder="Full Name"
+                                    value={fullName}
+                                    onChange={(e) => setFullName(e.target.value)}
+                                    className="w-full bg-[#F8F9FB] border border-gray-100 rounded-xl pl-12 pr-4 py-3 text-sm focus:ring-2 focus:ring-[#155DFC]/20 focus:border-[#155DFC] focus:outline-none placeholder:text-gray-400 transition-all"
+                                    required
+                                />
                             </div>
                         </div>
                     </div>
@@ -89,6 +109,8 @@ export function AddCellModal({ isOpen, onClose, onAdd }: AddCellModalProps) {
                                 <input
                                     type="email"
                                     placeholder="cellname@ptcc.com"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
                                     className="w-full bg-[#F8F9FB] border border-gray-100 rounded-xl pl-12 pr-4 py-3 text-sm focus:ring-2 focus:ring-[#155DFC]/20 focus:border-[#155DFC] focus:outline-none placeholder:text-gray-400 transition-all"
                                     required
                                 />
@@ -102,6 +124,8 @@ export function AddCellModal({ isOpen, onClose, onAdd }: AddCellModalProps) {
                                 <input
                                     type="password"
                                     placeholder="Minimum 8 characters"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
                                     className="w-full bg-[#F8F9FB] border border-gray-100 rounded-xl pl-12 pr-4 py-3 text-sm focus:ring-2 focus:ring-[#155DFC]/20 focus:border-[#155DFC] focus:outline-none placeholder:text-gray-400 transition-all"
                                     required
                                 />
@@ -119,9 +143,10 @@ export function AddCellModal({ isOpen, onClose, onAdd }: AddCellModalProps) {
                         </button>
                         <button
                             type="submit"
-                            className="flex-1 bg-[#155DFC] hover:bg-[#124ECC] text-white py-3 px-4 rounded-xl font-bold text-sm shadow-lg shadow-[#155DFC]/20 transition-all active:scale-95"
+                            disabled={loading}
+                            className="flex-1 bg-[#155DFC] hover:bg-[#124ECC] text-white py-3 px-4 rounded-xl font-bold text-sm shadow-lg shadow-[#155DFC]/20 transition-all active:scale-95 disabled:opacity-50"
                         >
-                            Create Account
+                            {loading ? "Creating..." : "Create Account"}
                         </button>
                     </div>
                 </form>

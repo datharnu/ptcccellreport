@@ -8,13 +8,41 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { CellReportModal } from "@/app/(auth)/sign-in/components/cell-report-modal";
 
+import { useRouter } from "next/navigation";
+import api from "@/lib/api";
+import { toast } from "react-hot-toast";
+
 export default function SignInPage() {
     const [showModal, setShowModal] = useState(false);
+    const [role, setRole] = useState("cell-leader");
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [loading, setLoading] = useState(false);
+    const router = useRouter();
 
-    const handleSignIn = (e: React.FormEvent) => {
+    const handleSignIn = async (e: React.FormEvent) => {
         e.preventDefault();
-        // Simulate sign-in and show modal
-        setShowModal(true);
+        setLoading(true);
+
+        try {
+            const response = await api.post("/auth/login", { email, password });
+            const { token, user } = response.data;
+
+            localStorage.setItem("token", token);
+            localStorage.setItem("user", JSON.stringify(user));
+
+            toast.success("Welcome back!");
+
+            if (user.role === "admin") {
+                router.push("/dashboard");
+            } else {
+                setShowModal(true);
+            }
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || "Invalid credentials");
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -27,7 +55,7 @@ export default function SignInPage() {
 
                 {/* Role Switcher */}
                 <div className="flex justify-center">
-                    <Tabs defaultValue="cell-leader" className="w-full">
+                    <Tabs value={role} onValueChange={setRole} className="w-full">
                         <TabsList className="grid w-full grid-cols-2 rounded-xl bg-slate-100 p-1 border border-slate-200/50">
                             <TabsTrigger
                                 value="cell-leader"
@@ -62,6 +90,8 @@ export default function SignInPage() {
                                         id="email"
                                         type="email"
                                         placeholder="Enter your email"
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
                                         required
                                         className="h-12 border-slate-200 bg-white placeholder:text-slate-400 focus-visible:ring-primary rounded-xl"
                                     />
@@ -75,14 +105,20 @@ export default function SignInPage() {
                                         id="password"
                                         type="password"
                                         placeholder="Enter your password"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
                                         required
                                         className="h-12 border-slate-200 bg-white placeholder:text-slate-400 focus-visible:ring-primary rounded-xl"
                                     />
                                 </div>
                             </div>
 
-                            <Button type="submit" className="w-full h-12 text-base font-bold bg-[#155DFC] hover:bg-[#155DFC]/90 transition-all shadow-lg shadow-[#155DFC]/20 rounded-xl">
-                                Sign in
+                            <Button
+                                type="submit"
+                                disabled={loading}
+                                className="w-full h-12 text-base font-bold bg-[#155DFC] hover:bg-[#124ECC] transition-all shadow-lg shadow-[#155DFC]/20 rounded-xl"
+                            >
+                                {loading ? "Signing in..." : "Sign in"}
                             </Button>
                         </form>
                     </CardContent>

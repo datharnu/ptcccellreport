@@ -1,29 +1,47 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Bell, Plus } from "lucide-react";
 import { AddCellModal } from "../components/add-cell-modal";
+import api from "@/lib/api";
+import { toast } from "react-hot-toast";
 
-const cellsData = [
-    { name: "Pearl LC", leader: "Bolu Thomas", location: "9 Abanise Street, Aratumi", created: "Feb 2, 2026" },
-    { name: "Glory LC", leader: "Ezinne Chijioke", location: "2, Little Base Street, Ipaye", created: "Feb 2, 2026" },
-    { name: "Grace LC", leader: "Adeola Tokosi", location: "2, Little Base Street, Ipaye", created: "Feb 2, 2026" },
-    { name: "Favour LC", leader: "Daniel Ahamba", location: "9 Abanise Street, Aratumi", created: "Feb 2, 2026" },
-    { name: "Light LC", leader: "Tinuola Grace", location: "9 Abanise Street, Aratumi", created: "Feb 2, 2026" },
-    { name: "Peace LC", leader: "Serah Akinyele", location: "9 Abanise Street, Aratumi", created: "Feb 2, 2026" },
-];
+interface User {
+    fullName: string;
+    email: string;
+    cellName: string;
+    createdAt: string;
+}
 
 export default function CellsPage() {
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [cells, setCells] = useState<User[]>([]);
+    const [loading, setLoading] = useState(true);
 
-    const handleAddCell = (data: any) => {
-        console.log("Adding cell with account:", data);
-        // Logic to save cell to backend would go here
+    const fetchCells = async () => {
+        try {
+            const response = await api.get("/users");
+            // Filter only cell leaders
+            const cellLeaders = response.data.data.filter((user: any) => user.role === 'cell_leader');
+            setCells(cellLeaders);
+        } catch (error) {
+            toast.error("Failed to load cells");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchCells();
+    }, []);
+
+    const handleAddCell = () => {
+        fetchCells();
     };
 
     return (
         <div className="min-h-screen bg-[#F8F9FB]">
-            {/* Header */}
+            {/* Header omitted for brevity in replace call, but should remain same */}
             <header className="h-24 bg-white border-b border-gray-100 flex items-center justify-between px-8 sticky top-0 z-10">
                 <div>
                     <h2 className="text-2xl font-extrabold text-[#111827]">Manage Cells</h2>
@@ -50,7 +68,6 @@ export default function CellsPage() {
 
             <div className="p-8">
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                    {/* Table Header Section */}
                     <div className="p-6 flex justify-between items-center bg-white border-b border-gray-50">
                         <div>
                             <h3 className="text-base font-bold text-gray-900">Cell Groups</h3>
@@ -65,24 +82,29 @@ export default function CellsPage() {
                         </button>
                     </div>
 
-                    {/* Table */}
                     <div className="overflow-x-auto">
                         <table className="w-full text-left">
                             <thead>
                                 <tr className="text-[11px] font-bold text-gray-900 border-b border-gray-50 uppercase tracking-wider">
                                     <th className="px-8 py-5">Cell Name</th>
                                     <th className="px-8 py-5">Leader Name</th>
-                                    <th className="px-8 py-5">Location</th>
+                                    <th className="px-8 py-5">Email</th>
                                     <th className="px-8 py-5">Created</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50">
-                                {cellsData.map((cell, index) => (
+                                {loading ? (
+                                    <tr><td colSpan={4} className="px-8 py-10 text-center text-gray-400">Loading cells...</td></tr>
+                                ) : cells.length === 0 ? (
+                                    <tr><td colSpan={4} className="px-8 py-10 text-center text-gray-400">No cell leaders found</td></tr>
+                                ) : cells.map((cell, index) => (
                                     <tr key={index} className="text-sm text-gray-700 hover:bg-gray-50/50 transition-colors group">
-                                        <td className="px-8 py-5 font-bold text-gray-900">{cell.name}</td>
-                                        <td className="px-8 py-5 font-medium">{cell.leader}</td>
-                                        <td className="px-8 py-5 text-gray-500">{cell.location}</td>
-                                        <td className="px-8 py-5 text-[#94A3B8] font-medium">{cell.created}</td>
+                                        <td className="px-8 py-5 font-bold text-gray-900">{cell.cellName}</td>
+                                        <td className="px-8 py-5 font-medium">{cell.fullName}</td>
+                                        <td className="px-8 py-5 text-gray-500">{cell.email}</td>
+                                        <td className="px-8 py-5 text-[#94A3B8] font-medium">
+                                            {new Date(cell.createdAt).toLocaleDateString()}
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -91,7 +113,6 @@ export default function CellsPage() {
                 </div>
             </div>
 
-            {/* Modals */}
             <AddCellModal
                 isOpen={isAddModalOpen}
                 onClose={() => setIsAddModalOpen(false)}
